@@ -9,8 +9,12 @@ var basicAuth = require('basic-auth');
 var config = require('./config/server.json');
 var agent = express();
 
+//logging
 var commander = require('commander');
 var bunyan = require('bunyan');
+
+//crypto
+var crypto = require('crypto');
 
 //cli
 commander
@@ -35,16 +39,55 @@ var log = bunyan.createLogger({
     ]
 });
 
+var blob;
+//read secret
+function readBlob(callback){
+    fs.readFile('config/blob.secret', 'utf8', function (err,data) {
+        if (err) return hasError(err);
+        callback(null, data);
+    });
+}
+
+readBlob(function (err, data) {
+    if(err) {
+        log.error(err);
+    }
+    blob = data;
+});
+
+function signBlob (key, blob) {
+  return 'sha1=' + crypto.createHmac('sha1', key).update(blob).digest('hex');
+}
+
 //main()
 function hook(req, res, next) {
+
+    // errors
+    function hasError (msg) {
+          log.error(msg);
+          res.status(400).send(JSON.stringify({ error: msg }));
+
+          var err = new Error(msg);
+    }
+
     var headers=req.headers;
     sig=headers['x-hub-signature'];
     deliv=headers['x-github-delivery'];
     agent=headers['user-agent'];
+
     if ( sig && deliv && agent ){
-        if(agent.indexOf('GitHub-Hookshot')){
+        if(agent.indexOf('GitHub-Hookshot')>-1){
             log.info(headers);
+            if (sig !== signBlob(blob, sig)){
+                return hasError('X-Hub-Signature does not match blob signature');
+            }
+            try {
+                obj = JSON.parse(data.toString());
+            } catch (e) {
+                return hasError(e);
+            }
             res.status(200).send('Request Recieved');
+
         }
     }
     else {
