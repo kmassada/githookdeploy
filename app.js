@@ -25,7 +25,7 @@ var log = bunyan.createLogger({
     src: true,
     streams: [
         {
-            level: commander.verbose? 'debug' : 'verbose',
+            level: commander.verbose? 'debug' : 'debug',
             stream: process.stdout            // log INFO and above to stdout
         },
         {
@@ -37,9 +37,15 @@ var log = bunyan.createLogger({
 
 //main()
 function hook(req, res, next) {
-    if (headers['X-Github-Delivery'] && headers['X-Hub-Signature'] && headers['X-Github-Delivery']){
-
-    //proceed
+    var headers=req.headers;
+    sig=headers['x-hub-signature'];
+    deliv=headers['x-github-delivery'];
+    agent=headers['user-agent'];
+    if ( sig && deliv && agent ){
+        if(agent.indexOf('GitHub-Hookshot')){
+            log.info(headers);
+            res.status(200).send('Request Recieved');
+        }
     }
     else {
         res.status(400).send('Sorry! you are not my agent.');
@@ -50,7 +56,6 @@ function hook(req, res, next) {
 //pulse
 agent.get('/', function (req, res, next) {
 	// indicate process is running
-	var headers=req.headers;
 	log.info(req.headers);
 	res.status(200).send('ok');
 });
