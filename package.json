@@ -1,22 +1,23 @@
 {
-	"name": "githookdeploy",
-	"version": "1.0.0",
-	"description": "agent to handle git's post-hook",
-	"main": "index.js",
-	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/kmassada/githookdeploy.git"
-	},
-	"author": "@kmassada",
-	"license": "ISC",
-	"dependencies": {
-		"basic-auth": "^1.0.3",
-		"bunyan": "^1.5.1",
-		"commander": "^2.9.0",
-		"daemon": "^1.1.0",
-		"express": "^4.13.3"
-	}
+  "name": "githookdeploy",
+  "version": "1.0.0",
+  "description": "agent to handle git's post-hook",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kmassada/githookdeploy.git"
+  },
+  "author": "@kmassada",
+  "license": "ISC",
+  "dependencies": {
+    "basic-auth": "^1.0.3",
+    "bl": "^1.0.0",
+    "bunyan": "^1.5.1",
+    "commander": "^2.9.0",
+    "daemon": "^1.1.0",
+    "express": "^4.13.3"
+  }
 }

@@ -15,7 +15,7 @@ var bunyan = require('bunyan');
 
 //crypto
 var crypto = require('crypto');
-
+var bl = require('bl');
 //cli
 commander
   .version('1.0.0')
@@ -78,16 +78,21 @@ function hook(req, res, next) {
     if ( sig && deliv && agent ){
         if(agent.indexOf('GitHub-Hookshot')>-1){
             log.info(headers);
-            if (sig !== signBlob(blob, sig)){
-                return hasError('X-Hub-Signature does not match blob signature');
-            }
-            try {
-                obj = JSON.parse(data.toString());
-            } catch (e) {
-                return hasError(e);
-            }
-            res.status(200).send('Request Recieved');
 
+            req.pipe(bl(function (err, data) {
+                if (err) {
+                    return hasError(err.message);
+                }
+                if (sig !== signBlob(blob, sig)){
+                    return hasError('X-Hub-Signature does not match blob signature');
+                }
+                try {
+                    obj = JSON.parse(data.toString());
+                } catch (e) {
+                    return hasError(e);
+                }
+                res.status(200).send('Request Recieved');
+            }));
         }
     }
     else {
