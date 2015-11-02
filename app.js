@@ -169,7 +169,10 @@ function hook(req, res, next) {
             return hasError(e);
         }
 
-        sendCommand(options);
+        // need nodejs 0.12
+    	var user = child_process.execSync('id -u ' + auth.name);
+        var uid = parseInt(Buffer.isBuffer(user) ? user.toString() : user, 10);
+        sendCommand(options, uid);
         res.status(200).send('Request Recieved');
     }));
 
