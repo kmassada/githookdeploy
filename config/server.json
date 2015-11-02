@@ -1,3 +1,15 @@
 {
-	"port": 6060
+	"port": 6060,
+	"defaultBranch": "master",
+	"users": {
+		"deploy": "qgAVyEZzfejhGKQffCgENNfgLfSFzC1q7SJDthMnV"
+	},
+	"projects": {
+		"laravelangular": {
+			"master": {
+				"path": "/var/www/laravel-angular",
+				"users": ["deploy"]
+			}
+		}
+	}
 }

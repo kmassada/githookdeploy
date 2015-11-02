@@ -39,7 +39,7 @@ var log = bunyan.createLogger({
     ]
 });
 
-var blob;
+var key;
 //read secret
 function readBlob(callback){
     fs.readFile('config/blob.secret', 'utf8', function (err,data) {
@@ -52,7 +52,7 @@ readBlob(function (err, data) {
     if(err) {
         log.error(err);
     }
-    blob = data;
+    key = data.slice(0, data.length - 1);
 });
 
 function signBlob (key, blob) {
@@ -61,7 +61,6 @@ function signBlob (key, blob) {
 
 //main()
 function hook(req, res, next) {
-
     // errors
     function hasError (msg) {
           log.error(msg);
@@ -69,35 +68,88 @@ function hook(req, res, next) {
 
           var err = new Error(msg);
     }
+    function verifyHeaders() {
+        //HEADERS
+        log.info(req.headers);
+        var obj;
+        var headers=req.headers;
+        sig = headers['x-hub-signature'];
+        deliv = headers['x-github-delivery'];
+        agent = headers['user-agent'];
 
-    var headers=req.headers;
-    sig=headers['x-hub-signature'];
-    deliv=headers['x-github-delivery'];
-    agent=headers['user-agent'];
-
-    if ( sig && deliv && agent ){
-        if(agent.indexOf('GitHub-Hookshot')>-1){
-            log.info(headers);
-
-            req.pipe(bl(function (err, data) {
-                if (err) {
-                    return hasError(err.message);
-                }
-                if (sig !== signBlob(blob, sig)){
-                    return hasError('X-Hub-Signature does not match blob signature');
-                }
-                try {
-                    obj = JSON.parse(data.toString());
-                } catch (e) {
-                    return hasError(e);
-                }
-                res.status(200).send('Request Recieved');
-            }));
+        if ( !sig || !deliv || !agent ){
+            hasError('Sorry! you are not my agent.');
         }
+
+        if(agent.indexOf('GitHub-Hookshot')<0){
+            hasError('Sorry! what you think you doing?');
+        }
+
+        log.info('headers are validated');
     }
-    else {
-        res.status(400).send('Sorry! you are not my agent.');
+
+    function verifyConfig() {
+        //hookagent behavior
+        log.info(config);
+        var id = req.params[0];
+    	if (!id) {
+    		hasError('No project id provided.');
+    	}
+
+    	// find project in config
+    	var project = config.projects[id];
+    	if (!project) {
+    		hasError('No project named as "' + id + '" found.');
+    	}
+
+    	// find branch options in config
+    	var branch = req.params[1] || config.defaultBranch;
+    	var options = project[branch];
+        log.info(options);
+    	if (!options) {
+    		hasError('No options of branch "' + branch + '" found. Please check config.');
+    	}
+
+        fs.exists((options.path), function (exists) {
+            if(!exists){
+                hasError('No path found for project: "' + id + '"');
+            }
+        });
+
+        // check auth
+    	var auth = basicAuth(req);
+    	if (!auth ||
+    		!auth.pass ||
+    		options.users.indexOf(auth.name) < 0 ||
+    		config.users[auth.name] != auth.pass) {
+    		hasError('Access Denied.');
+    	}
+        log.info('auth1 is passed');
+
+        log.info('server configs are validated');
     }
+    verifyConfig();
+    verifyHeaders();
+
+    req.pipe(bl(function (err, data) {
+        if (err) {
+            return hasError(err.message);
+        }
+
+        if (sig !== signBlob(key, data)){
+            return hasError('X-Hub-Signature does not match blob signature');
+        }
+        log.info('auth2 is passed');
+
+        try {
+            obj = JSON.parse(data.toString());
+        } catch (e) {
+            return hasError(e);
+        }
+
+        res.status(200).send('Request Recieved');
+    }));
+
 
 }
 
@@ -108,16 +160,9 @@ agent.get('/', function (req, res, next) {
 	res.status(200).send('ok');
 });
 
-agent.post('/payload', hook);
+// [POST]:/project/project-name<@branch-name>
+agent.post(/\/project\/([\w-]+)(?:@([\w-]+))?/i, hook);
 
 agent.listen(config.port, function() {
 	log.info("Hook agent started at %s. Listening on %d", new Date(), config.port);
-});
-
-process.on('SIGTERM', function () {
-  if (server === undefined) return;
-  server.close(function () {
-    // Disconnect from cluster master
-    process.disconnect && process.disconnect();
-  });
 });
