@@ -39,7 +39,7 @@ var log = bunyan.createLogger({
     ]
 });
 
-var key, options;
+var key, options, id, branch;
 //read secret
 function readBlob(callback){
     fs.readFile('config/blob.secret', 'utf8', function (err,data) {
@@ -121,7 +121,7 @@ function hook(req, res, next) {
     function verifyConfig() {
         //hookagent behavior
         log.info(config);
-        var id = req.params[0];
+        id = req.params[0];
     	if (!id) {
     		hasError('No project id provided.');
     	}
@@ -133,7 +133,7 @@ function hook(req, res, next) {
     	}
 
     	// find branch options in config
-    	var branch = req.params[1] || config.defaultBranch;
+    	branch = req.params[1] || config.defaultBranch;
     	options = project[branch];
         log.info(options);
     	if (!options) {
