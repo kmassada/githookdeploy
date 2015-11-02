@@ -39,7 +39,7 @@ var log = bunyan.createLogger({
     ]
 });
 
-var key;
+var key, options;
 //read secret
 function readBlob(callback){
     fs.readFile('config/blob.secret', 'utf8', function (err,data) {
@@ -59,6 +59,24 @@ function signBlob (key, blob) {
   return 'sha1=' + crypto.createHmac('sha1', key).update(blob).digest('hex');
 }
 
+function sendCommand(options) {
+    child_process.execFile(path.join(__dirname, 'bin/deploy.sh'), [id, branch, options.shell || ''], {
+		cwd: options.path,
+		uid: uid
+	}, function (error, stdout, stderr) {
+		log.info(stdout);
+		if (stderr) {
+			log.error(stderr);
+		}
+		if (error) {
+			log.error(error);
+		} else {
+            log.info('Deployment done.');
+		}
+	});
+
+	log.info('Deployment started.');
+}
 //main()
 function hook(req, res, next) {
     // errors
@@ -88,6 +106,18 @@ function hook(req, res, next) {
         log.info('headers are validated');
     }
 
+    function verifyAuth(options){
+        // check auth
+    	var auth = basicAuth(req);
+    	if (!auth ||
+    		!auth.pass ||
+    		options.users.indexOf(auth.name) < 0 ||
+    		config.users[auth.name] != auth.pass) {
+    		hasError('Access Denied.');
+    	}
+        log.info('auth1 is passed');
+    }
+
     function verifyConfig() {
         //hookagent behavior
         log.info(config);
@@ -104,7 +134,7 @@ function hook(req, res, next) {
 
     	// find branch options in config
     	var branch = req.params[1] || config.defaultBranch;
-    	var options = project[branch];
+    	options = project[branch];
         log.info(options);
     	if (!options) {
     		hasError('No options of branch "' + branch + '" found. Please check config.');
@@ -116,15 +146,7 @@ function hook(req, res, next) {
             }
         });
 
-        // check auth
-    	var auth = basicAuth(req);
-    	if (!auth ||
-    		!auth.pass ||
-    		options.users.indexOf(auth.name) < 0 ||
-    		config.users[auth.name] != auth.pass) {
-    		hasError('Access Denied.');
-    	}
-        log.info('auth1 is passed');
+        verifyAuth(options);
 
         log.info('server configs are validated');
     }
@@ -147,6 +169,7 @@ function hook(req, res, next) {
             return hasError(e);
         }
 
+        sendCommand(options);
         res.status(200).send('Request Recieved');
     }));
 
