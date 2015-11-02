@@ -16,10 +16,8 @@ fi
 
 found=0
 
-echo "git reset --hard HEAD"
-git reset --hard HEAD
-echo "git fetch origin"
-git fetch origin
+echo "git fetch"
+git fetch --all 
 
 for br in $(git branch | sed 's/^[\* ]*//')
 do
@@ -30,13 +28,15 @@ do
 done
 
 if [[ $found == 1 ]]; then
-	echo "git checkout $branch"
-	git checkout $branch
-	echo "git merge origin/$branch"
-	git merge origin/$branch
+	git clean  -d  -fx ""
+	echo "git checkout -f -b $branch"
+	git reset --hard origin/$branch
+	git checkout -f -b $branch
+	echo "git pull origin $branch"
+	git pull origin $branch -f
 else
 	echo "git checkout origin/$branch -b $branch"
-	git checkout origin/$branch -b $branch
+	git checkout origin/$branch -f -b $branch
 fi
 
 git submodule update --init --recursive
