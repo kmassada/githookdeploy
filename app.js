@@ -39,7 +39,7 @@ var log = bunyan.createLogger({
     ]
 });
 
-var key, options, id, branch;
+var key, options, id, branch, auth;
 //read secret
 function readBlob(callback){
     fs.readFile('config/blob.secret', 'utf8', function (err,data) {
@@ -59,7 +59,7 @@ function signBlob (key, blob) {
   return 'sha1=' + crypto.createHmac('sha1', key).update(blob).digest('hex');
 }
 
-function sendCommand(options) {
+function sendCommand(options, uid) {
     child_process.execFile(path.join(__dirname, 'bin/deploy.sh'), [id, branch, options.shell || ''], {
 		cwd: options.path,
 		uid: uid
@@ -108,7 +108,7 @@ function hook(req, res, next) {
 
     function verifyAuth(options){
         // check auth
-    	var auth = basicAuth(req);
+    	auth = basicAuth(req);
     	if (!auth ||
     		!auth.pass ||
     		options.users.indexOf(auth.name) < 0 ||
@@ -172,7 +172,7 @@ function hook(req, res, next) {
         // need nodejs 0.12
     	var user = child_process.execSync('id -u ' + auth.name);
         var uid = parseInt(Buffer.isBuffer(user) ? user.toString() : user, 10);
-        sendCommand(options, uid);
+        sendCommand(option, uid);
         res.status(200).send('Request Recieved');
     }));
 
