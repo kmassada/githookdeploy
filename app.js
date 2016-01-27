@@ -59,24 +59,6 @@ function signBlob (key, blob) {
   return 'sha1=' + crypto.createHmac('sha1', key).update(blob).digest('hex');
 }
 
-function sendCommand(options, uid) {
-    child_process.execFile(path.join(__dirname, 'bin/deploy.sh'), [id, branch, options.shell || ''], {
-		cwd: options.path,
-		uid: uid
-	}, function (error, stdout, stderr) {
-		log.info(stdout);
-		if (stderr) {
-			log.error(stderr);
-		}
-		if (error) {
-			log.error(error);
-		} else {
-            log.info('Deployment done.');
-		}
-	});
-
-	log.info('Deployment started.');
-}
 //main()
 function hook(req, res, next) {
     // errors
@@ -172,7 +154,22 @@ function hook(req, res, next) {
         // need nodejs 0.12
     	var user = child_process.execSync('id -u ' + auth.name);
         var uid = parseInt(Buffer.isBuffer(user) ? user.toString() : user, 10);
-        sendCommand(options, uid);
+        child_process.execFile(path.join(__dirname, 'bin/deploy.sh'), [id, branch, options.shell || ''], {
+    		cwd: options.path,
+    		uid: uid
+    	}, function (error, stdout, stderr) {
+    		log.info(stdout);
+    		if (stderr) {
+    			log.error(stderr);
+    		}
+    		if (error) {
+    			log.error(error);
+    		} else {
+                log.info('Deployment done.');
+    		}
+    	});
+
+    	log.info('Deployment started.');
         res.status(200).send('Request Recieved');
     }));
 

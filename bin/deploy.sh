@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LOG_PATH=/var/log/hookagent
+LOG_PATH=/var/log/githookdeploy
 PROJECT=$1
 
 branch=$2
@@ -16,8 +16,8 @@ fi
 
 found=0
 
-echo "git fetch"
-git fetch --all 
+echo "git fetch --all"
+git fetch --all
 
 for br in $(git branch | sed 's/^[\* ]*//')
 do
@@ -28,14 +28,14 @@ do
 done
 
 if [[ $found == 1 ]]; then
+  echo "git clean  -d  -fx "
 	git clean  -d  -fx ""
-	echo "git checkout -f -b $branch"
+	echo "git reset --hard origin/$branch"
 	git reset --hard origin/$branch
-	git checkout -f -b $branch
-	echo "git pull origin $branch"
+  echo "git checkout -f -b $branch"
 	git pull origin $branch -f
 else
-	echo "git checkout origin/$branch -b $branch"
+	echo "git checkout origin/$branch -f -b $branch"
 	git checkout origin/$branch -f -b $branch
 fi
 
